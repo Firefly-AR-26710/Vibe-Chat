@@ -1,4 +1,8 @@
 ## Agent skills (AI 技能配置)
+../.agents/skills
+
+### 语言
+中文
 
 ### 问题追踪 (Issue tracker)
 本项目的所有需求和任务均在 GitHub Issues 中进行管理。详见 `docs/agents/issue-tracker.md`。
