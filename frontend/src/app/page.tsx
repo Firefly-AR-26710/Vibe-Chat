@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Layout, Input, Button, Card, Typography, Space, Tag, Spin, message, Dropdown } from "antd";
+import { Layout, Input, Button, Card, Typography, Space, Tag, Spin, Dropdown, App } from "antd";
 import type { MenuProps } from "antd";
 import { SendOutlined, HeartFilled, ClockCircleOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
 
@@ -17,6 +17,7 @@ interface EmotionHistory {
 }
 
 export default function Home() {
+  const { message } = App.useApp();
   const router = useRouter();
   const [text, setText] = useState("");
   const [status, setStatus] = useState<"idle" | "analyzing" | "matching">("idle");
@@ -257,7 +258,7 @@ export default function Home() {
 
           {status === "matching" && emotion && (
             <Card variant="borderless" className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl bg-white/95 backdrop-blur-sm p-10 text-center">
-              <Space direction="vertical" size="large" className="w-full">
+              <div className="flex flex-col gap-6 w-full">
                 <div className="bg-slate-50 rounded-2xl p-8 mb-4">
                   <Text type="secondary" className="uppercase tracking-widest text-xs font-semibold">捕获到的情绪</Text>
                   <Title level={2} className="!mt-3 !mb-5 text-slate-800">{emotion.label}</Title>
@@ -271,7 +272,7 @@ export default function Home() {
                   <Title level={4} className="!mt-8 !mb-3 text-slate-700">正在寻找共鸣...</Title>
                   <Text type="secondary" className="text-base">匹配同样【{emotion.label}】的灵魂</Text>
                 </div>
-              </Space>
+              </div>
             </Card>
           )}
         </div>

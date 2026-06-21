@@ -71,29 +71,37 @@ export default function ChatRoom() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-pink-50/30 font-sans text-slate-800 relative overflow-hidden">
-      {/* Background Gradients */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-200/30 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[100px] pointer-events-none" />
+    <div className="flex flex-col h-[100dvh] bg-[#f8fafc] font-sans text-slate-800 relative overflow-hidden">
+      {/* Dreamy Ambient Background (matching homepage) */}
+      <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#e6fffb] rounded-full blur-[120px] opacity-70 pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#fff0f6] rounded-full blur-[120px] opacity-70 pointer-events-none z-0" />
+      <div className="absolute top-[30%] left-[50%] w-[500px] h-[500px] bg-[#f0f5ff] rounded-full blur-[150px] opacity-50 pointer-events-none z-0 transform -translate-x-1/2" />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-md border-b border-white/60 z-10 shadow-sm">
+      <header 
+        className="flex items-center justify-between px-6 py-4 z-10 shadow-sm shrink-0"
+        style={{ 
+          background: 'rgba(255, 255, 255, 0.85)', 
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(229, 231, 235, 0.5)'
+        }}
+      >
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push("/")} className="p-2 hover:bg-white/60 rounded-full transition-colors text-slate-500 hover:text-slate-800">
+          <button onClick={() => router.push("/")} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500 hover:text-slate-800">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex flex-col">
             <h1 className="font-semibold text-lg flex items-center gap-2 text-slate-800">
               匿名共鸣空间
-              {isAiRoom && <span className="bg-gradient-to-r from-pink-100 to-rose-100 text-rose-500 text-xs px-2.5 py-0.5 rounded-full border border-pink-200 ml-2 shadow-sm">AI 伴侣</span>}
+              {isAiRoom && <span className="bg-rose-50 text-rose-500 text-xs px-2.5 py-0.5 rounded-md border border-rose-100 ml-2 shadow-sm font-medium">AI 伴侣</span>}
             </h1>
             <span className="text-xs text-slate-500">
               {myIdentity ? `你是：${myIdentity.nickname}` : "微风正在连接..."}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-white/50 px-3 py-1 rounded-full border border-white/60">
-           <div className={`w-2 h-2 rounded-full animate-pulse ${ws?.readyState === WebSocket.OPEN ? 'bg-cyan-400' : 'bg-rose-400'}`} />
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+           <div className={`w-2 h-2 rounded-full animate-pulse ${ws?.readyState === WebSocket.OPEN ? 'bg-[#13c2c2]' : 'bg-rose-400'}`} />
            <span className="text-xs text-slate-500 font-medium">{ws?.readyState === WebSocket.OPEN ? '已连接' : '已断开'}</span>
         </div>
       </header>
@@ -114,7 +122,7 @@ export default function ChatRoom() {
                   key={msg.id} 
                   className="flex justify-center"
                 >
-                  <span className="text-xs bg-white/60 border border-white/80 text-slate-500 px-4 py-1.5 rounded-full backdrop-blur-sm shadow-sm">
+                  <span className="text-xs bg-white/80 border border-slate-200 text-slate-500 px-4 py-1.5 rounded-full shadow-sm">
                     {msg.content}
                   </span>
                 </motion.div>
@@ -128,18 +136,20 @@ export default function ChatRoom() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 className={`flex w-full ${isMe ? "justify-end" : "justify-start"}`}
               >
-                <div className={`flex max-w-[80%] gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                <div className={`flex max-w-[85%] sm:max-w-[70%] gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                   <div 
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-white/60"
-                    style={{ backgroundColor: msg.color || "#e2e8f0" }}
+                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-slate-100 bg-white"
                   >
-                    {isAI ? <Sparkles className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-white" />}
+                    {isAI ? <Sparkles className="w-5 h-5 text-rose-400" /> : <User className="w-5 h-5 text-slate-400" />}
                   </div>
                   <div className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                    <span className="text-xs text-slate-400 mb-1 px-1">{isMe ? "我" : msg.sender}</span>
+                    <span className="text-xs text-slate-400 mb-1 px-1 font-medium">{isMe ? "我" : msg.sender}</span>
                     <div 
-                      className={`px-5 py-3 rounded-3xl shadow-sm border border-white/40 ${isMe ? "text-white rounded-tr-md" : "bg-white/80 backdrop-blur-sm text-slate-700 rounded-tl-md"}`}
-                      style={isMe ? { backgroundColor: msg.color || "#38bdf8" } : {}}
+                      className={`px-5 py-3 shadow-sm border ${
+                        isMe 
+                          ? "bg-[#13c2c2] text-white border-[#13c2c2] rounded-2xl rounded-tr-sm" 
+                          : "bg-white text-slate-700 border-slate-100 rounded-2xl rounded-tl-sm"
+                      }`}
                     >
                       <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     </div>
@@ -149,18 +159,18 @@ export default function ChatRoom() {
             );
           })}
         </AnimatePresence>
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-4" />
       </main>
 
-      {/* Input */}
-      <footer className="p-4 bg-white/40 backdrop-blur-md border-t border-white/60 z-10">
-        <div className="max-w-4xl mx-auto relative flex items-center">
+      {/* Input - Transparent Bottom Bar */}
+      <footer className="p-4 bg-transparent z-10 shrink-0 pb-6 md:pb-8">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="轻声诉说..."
-            className="w-full bg-white/70 backdrop-blur-xl text-slate-800 placeholder:text-slate-400 rounded-full pl-6 pr-14 py-4 outline-none focus:ring-2 focus:ring-cyan-300/50 transition-all border border-white/80 shadow-sm"
+            className="flex-1 bg-white/70 backdrop-blur-md text-slate-800 placeholder:text-slate-400 rounded-full px-6 py-3.5 outline-none focus:ring-2 focus:ring-[#13c2c2]/50 focus:bg-white/95 transition-all border border-white/80 shadow-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
@@ -168,9 +178,10 @@ export default function ChatRoom() {
           <button
             onClick={sendMessage}
             disabled={!input.trim()}
-            className="absolute right-2 p-2.5 bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-full hover:opacity-90 disabled:opacity-50 transition-all shadow-md active:scale-95"
+            className="px-6 py-3.5 bg-[#13c2c2] text-white rounded-full hover:opacity-90 disabled:opacity-50 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 font-medium"
           >
             <Send className="w-5 h-5" />
+            <span className="hidden sm:inline">发送</span>
           </button>
         </div>
       </footer>
