@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Sparkles, ArrowLeft } from "lucide-react";
+import { CustomModal } from "@/components/CustomModal";
 
 interface Message {
   type: "system" | "message" | "identity";
@@ -34,6 +35,8 @@ export default function ChatRoom() {
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
+  
+  const [modalState, setModalState] = useState<{isOpen: boolean, content: string}>({ isOpen: false, content: "" });
 
   const isAiRoom = roomId?.startsWith("ai_room_");
 
@@ -57,6 +60,8 @@ export default function ChatRoom() {
           polarity: data.polarity,
           suggestions: data.suggestions
         });
+      } else if (data.type === "error") {
+        setModalState({ isOpen: true, content: data.content });
       } else {
         setMessages((prev) => [...prev, { ...data, id: Math.random().toString() }]);
       }
@@ -100,6 +105,12 @@ export default function ChatRoom() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#f8fafc] font-sans text-slate-800 relative overflow-hidden">
+      <CustomModal 
+        isOpen={modalState.isOpen} 
+        onClose={() => setModalState({ ...modalState, isOpen: false })} 
+        title="提示" 
+        content={modalState.content} 
+      />
       {/* Dreamy Ambient Background (matching homepage) */}
       <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#e6fffb] rounded-full blur-[120px] opacity-70 pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#fff0f6] rounded-full blur-[120px] opacity-70 pointer-events-none z-0" />

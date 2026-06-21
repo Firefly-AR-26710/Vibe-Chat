@@ -279,6 +279,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, client_id: str)
                         await manager.broadcast(ai_msg, room_id)
                     except Exception as e:
                         print("AI error:", e)
+                        error_msg = json.dumps({
+                            "type": "error",
+                            "content": "AI伴侣当前无法响应，请检查API设置或稍后再试。"
+                        })
+                        await manager.broadcast(error_msg, room_id)
                         
                 asyncio.create_task(ai_respond())
                 
