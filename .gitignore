@@ -1,0 +1,30 @@
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+.env*.local
+.vercel
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyd
+*$py.class
+venv/
+env/
+.env
+.venv
+*.sqlite3
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
