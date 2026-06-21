@@ -28,7 +28,7 @@ def get_llm():
     if provider == "anthropic":
         return ChatAnthropic(
             model_name=get_setting("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"),
-            api_key=get_setting("ANTHROPIC_API_KEY", ""),
+            api_key=get_setting("ANTHROPIC_API_KEY", "") or "dummy_key",
             anthropic_api_url=get_setting("ANTHROPIC_BASE_URL") or None,
             temperature=0.7,
         )
@@ -36,7 +36,7 @@ def get_llm():
         # Default to OpenAI standard interface
         return ChatOpenAI(
             model=get_setting("OPENAI_MODEL", "gpt-4o-mini"),
-            api_key=get_setting("OPENAI_API_KEY", ""),
+            api_key=get_setting("OPENAI_API_KEY", "") or "dummy_key",
             base_url=get_setting("OPENAI_BASE_URL") or None,
             temperature=0.7,
         )

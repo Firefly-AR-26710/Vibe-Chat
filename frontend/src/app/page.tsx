@@ -45,7 +45,7 @@ export default function Home() {
   const fetchHistory = async (token: string) => {
     const host = window.location.hostname;
     try {
-      const res = await fetch(`http://${host}:8000/api/auth/history`, {
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/auth/history`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -86,7 +86,7 @@ export default function Home() {
       }
 
       // 1. Analyze Emotion
-      const res = await fetch(`http://${host}:8000/api/emotion/analyze`, {
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/emotion/analyze`, {
         method: "POST",
         headers,
         body: JSON.stringify({ text }),
@@ -96,7 +96,7 @@ export default function Home() {
       setStatus("matching");
 
       // 2. Request Match
-      const matchRes = await fetch(`http://${host}:8000/api/ws/match`, {
+      const matchRes = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/ws/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,7 +134,7 @@ export default function Home() {
   const handleFallbackChoice = async (type: "ai" | "mock_user") => {
     try {
       const host = window.location.hostname;
-      const res = await fetch(`http://${host}:8000/api/ws/match/fallback`, {
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/ws/match/fallback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

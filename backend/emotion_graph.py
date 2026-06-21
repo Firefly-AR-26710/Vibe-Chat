@@ -162,7 +162,7 @@ class RemoteEmotionGraph:
         self.redis_client = None
 
     def invoke(self, state: dict) -> dict:
-        use_remote = os.getenv("USE_REMOTE_AI_WORKER", "false").lower() == "true"
+        use_remote = os.getenv("USE_REMOTE_AI_WORKER", "true").lower() == "true"
         if not use_remote:
             return _emotion_graph.invoke(state)
         

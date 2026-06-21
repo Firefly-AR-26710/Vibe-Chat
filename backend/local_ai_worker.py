@@ -12,15 +12,20 @@ os.environ["USE_REMOTE_AI_WORKER"] = "false"
 from langchain_core.messages import messages_from_dict, messages_to_dict
 from emotion_graph import _emotion_graph
 
-# Replace with the remote server's IP and port
-REMOTE_REDIS_URL = os.getenv("REMOTE_REDIS_URL", "redis://8.159.148.30:6381/0")
+# Replace with the remote server's IP and port (Added password to pass protected mode)
+REMOTE_REDIS_URL = os.getenv("REMOTE_REDIS_URL", "redis://:VibeChat2026Secure@8.159.148.30:6381/0")
 
 print(f"Starting Local AI Worker...")
 print(f"Connecting to Remote Redis: {REMOTE_REDIS_URL}")
 print(f"Make sure you have your local .env configured with Gemini API keys!")
 
 try:
-    r = redis.Redis.from_url(REMOTE_REDIS_URL, decode_responses=True)
+    r = redis.Redis.from_url(
+        REMOTE_REDIS_URL, 
+        decode_responses=True, 
+        health_check_interval=30,
+        socket_keepalive=True
+    )
     r.ping()
     print("Connected to remote Redis successfully!")
 except Exception as e:
@@ -32,6 +37,7 @@ print("Listening for AI tasks...")
 while True:
     try:
         # Block until a task is available
+        # health_check_interval and socket_keepalive prevent NAT drops
         response = r.brpop("ai_task_queue", timeout=0)
         if response:
             _, task_json = response
@@ -62,6 +68,9 @@ while True:
             r.expire(f"ai_result:{task_id}", 300)
             print(f"Result for {task_id} sent back to remote server.\n")
             
+    except (redis.exceptions.TimeoutError, TimeoutError, redis.exceptions.ConnectionError):
+        # Reconnect automatically on timeout/connection drops without spamming
+        time.sleep(1)
     except Exception as e:
         print(f"Error processing task: {e}")
         time.sleep(2)

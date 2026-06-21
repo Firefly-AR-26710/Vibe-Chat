@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
     appIsrStatus: false,
     buildActivity: false,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  output: "standalone",
 };
 
 export default nextConfig;

@@ -23,7 +23,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onCancel }) 
     setFetching(true);
     try {
       const host = window.location.hostname;
-      const res = await fetch(`http://${host}:8000/api/settings/llm`);
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/settings/llm`);
       if (res.ok) {
         const data = await res.json();
         form.setFieldsValue(data);
@@ -41,7 +41,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onCancel }) 
     setLoading(true);
     try {
       const host = window.location.hostname;
-      const res = await fetch(`http://${host}:8000/api/settings/llm`, {
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}/api/settings/llm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

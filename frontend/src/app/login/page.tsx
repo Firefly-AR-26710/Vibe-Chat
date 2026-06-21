@@ -25,7 +25,7 @@ export default function Login() {
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
     const host = window.location.hostname;
     try {
-      const res = await fetch(`http://${host}:8000${endpoint}`, {
+      const res = await fetch(`http://${host}:${window.location.port === '3000' ? '8000' : '8002'}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
