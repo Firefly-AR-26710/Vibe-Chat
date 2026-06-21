@@ -47,7 +47,10 @@ export default function ChatRoom() {
     }
 
     const host = window.location.hostname;
-    const socket = new WebSocket(`ws://${host}:8002/api/ws/chat/${roomId}/${clientId}`);
+    // 如果前端是在 3000 端口运行（本地 npm run dev），则连接本地 8000 的 uvicorn
+    // 否则（Docker部署的 3002 端口或生产环境），连接 8002
+    const wsPort = window.location.port === "3000" ? "8000" : "8002";
+    const socket = new WebSocket(`ws://${host}:${wsPort}/api/ws/chat/${roomId}/${clientId}`);
     
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
