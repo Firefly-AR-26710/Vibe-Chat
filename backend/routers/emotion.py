@@ -33,7 +33,11 @@ async def analyze_emotion_api(
 ):
     try:
         # 调用基于 LangGraph 的情绪分析器
-        state = {"text": request.text}
+        from langchain_core.messages import HumanMessage
+        state = {
+            "messages": [HumanMessage(content=request.text)],
+            "match_status": "queueing"
+        }
         result = emotion_graph.invoke(state)
         
         emotion_label = result.get("emotion_label", "平静")

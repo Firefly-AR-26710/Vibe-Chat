@@ -74,6 +74,9 @@ async def request_match(request: MatchRequest):
     from fastapi import HTTPException
     import logging
     try:
+        # Clear previous match to allow fresh 15s wait
+        await redis_client.delete(f"match:{request.user_id}")
+        
         await enqueue_user(
             user_id=request.user_id,
             emotion_label=request.emotion_label,
@@ -88,13 +91,52 @@ async def request_match(request: MatchRequest):
             keywords=request.keywords
         )
         
+        if room_id is None:
+            return {"status": "timeout"}
+            
         return {
+            "status": "success",
             "room_id": room_id,
             "is_ai_companion": is_ai
         }
     except Exception as e:
         logging.error(f"Error during match: {e}")
         raise HTTPException(status_code=503, detail=f"Matching service unavailable: {str(e)}")
+
+class FallbackRequest(BaseModel):
+    user_id: str
+    emotion_label: str
+    intensity: int
+    polarity: str
+    keywords: List[str]
+    fallback_type: str # "ai" or "mock_user"
+
+@router.post("/match/fallback")
+async def create_fallback_room(request: FallbackRequest):
+    import uuid
+    from fastapi import HTTPException
+    try:
+        prefix = "mock_room_" if request.fallback_type == "mock_user" else "ai_room_"
+        room_id = f"{prefix}{uuid.uuid4()}"
+        
+        # Save context
+        ai_context = {
+            "emotion_label": request.emotion_label,
+            "polarity": request.polarity,
+            "keywords": request.keywords,
+            "intensity": request.intensity,
+            "mock_nickname": f"{random.choice(ADJECTIVES)}的{random.choice(ANIMALS)}",
+            "mock_color": random.choice(COLORS)
+        }
+        await redis_client.set(f"ai_context:{room_id}", json.dumps(ai_context), ex=3600)
+        
+        return {
+            "status": "success",
+            "room_id": room_id,
+            "is_ai_companion": True
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Fallback failed: {str(e)}")
 
 @router.websocket("/chat/{room_id}/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, client_id: str):
@@ -103,8 +145,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, client_id: str)
     identity = manager.identities[client_id]
     
     is_ai_room = room_id.startswith("ai_room_")
+    is_mock_room = room_id.startswith("mock_room_")
+    
     ai_context_str = None
-    if is_ai_room:
+    if is_ai_room or is_mock_room:
         # Load the initial context for the AI from Redis
         ai_context_str = await redis_client.get(f"ai_context:{room_id}")
     
@@ -137,6 +181,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, client_id: str)
             "color": "#94a3b8" # gray color for AI
         })
         await websocket.send_text(ai_intro)
+    elif is_mock_room:
+        mock_nickname = "匿名网友"
+        if ai_context_str:
+            mock_nickname = json.loads(ai_context_str).get("mock_nickname", "匿名网友")
+        mock_intro = json.dumps({
+            "type": "system",
+            "content": f"【{mock_nickname}】加入了房间。",
+            "sender": "系统"
+        })
+        await websocket.send_text(mock_intro)
 
     try:
         while True:
@@ -151,27 +205,35 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, client_id: str)
             await manager.broadcast(message, room_id)
             
             # AI response trigger
-            if is_ai_room:
-                from llm_factory import get_llm
-                from langchain_core.messages import SystemMessage, HumanMessage
-                llm = get_llm()
+            if is_ai_room or is_mock_room:
+                from emotion_graph import emotion_graph
+                from langchain_core.messages import HumanMessage
                 
                 async def ai_respond():
                     try:
-                        sys_prompt = "你是一个富有同理心的匿名社交伴侣。请用简短、温柔的中文（1-2句话）回应用户，给予他们情绪价值。"
-                        if ai_context_str:
-                            ai_context = json.loads(ai_context_str)
-                            sys_prompt += f" 用户当前的情绪是：{ai_context.get('emotion_label')}（极性：{ai_context.get('polarity')}，强度：{ai_context.get('intensity')}/10）。"
-                            
-                        resp = await llm.ainvoke([
-                            SystemMessage(content=sys_prompt),
-                            HumanMessage(content=data)
-                        ])
+                        ai_context = json.loads(ai_context_str) if ai_context_str else {}
+                        match_status = "mock_user" if is_mock_room else "ai"
+                        
+                        state = {
+                            "messages": [HumanMessage(content=data)],
+                            "match_status": match_status,
+                            "emotion_label": ai_context.get("emotion_label", ""),
+                            "intensity_score": ai_context.get("intensity", 5),
+                            "polarity": ai_context.get("polarity", "中性"),
+                        }
+                        
+                        # Use asyncio.to_thread to run sync graph invocation in background
+                        result = await asyncio.to_thread(emotion_graph.invoke, state)
+                        ai_reply = result.get("current_response", "……")
+                        
+                        sender_name = "AI 伴侣" if is_ai_room else ai_context.get("mock_nickname", "匿名网友")
+                        sender_color = "#94a3b8" if is_ai_room else ai_context.get("mock_color", "#f59e0b")
+                        
                         ai_msg = json.dumps({
                             "type": "message", 
-                            "content": resp.content, 
-                            "sender": "AI 伴侣",
-                            "color": "#94a3b8"
+                            "content": ai_reply, 
+                            "sender": sender_name,
+                            "color": sender_color
                         })
                         await manager.broadcast(ai_msg, room_id)
                     except Exception as e:

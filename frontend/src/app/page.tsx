@@ -20,7 +20,7 @@ export default function Home() {
   const { message } = App.useApp();
   const router = useRouter();
   const [text, setText] = useState("");
-  const [status, setStatus] = useState<"idle" | "analyzing" | "matching">("idle");
+  const [status, setStatus] = useState<"idle" | "analyzing" | "matching" | "timeout">("idle");
   const [emotion, setEmotion] = useState<{ label: string; intensity: number } | null>(null);
   const [clientId, setClientId] = useState("");
   const [username, setUsername] = useState<string | null>(null);
@@ -113,6 +113,11 @@ export default function Home() {
       
       const matchData = await matchRes.json();
       
+      if (matchData.status === "timeout") {
+        setStatus("timeout");
+        return;
+      }
+      
       // 3. Redirect to Room
       if (matchData.room_id) {
         router.push(`/chat/${matchData.room_id}?clientId=${clientId}`);
@@ -121,6 +126,35 @@ export default function Home() {
       console.error("Error:", error);
       setStatus("idle");
       message.error("连接服务器失败，请稍后重试。");
+    }
+  };
+
+  const handleFallbackChoice = async (type: "ai" | "mock_user") => {
+    try {
+      const host = window.location.hostname;
+      const res = await fetch(`http://${host}:8000/api/ws/match/fallback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: clientId,
+          emotion_label: emotion?.label || "平静",
+          intensity: emotion?.intensity || 5,
+          polarity: "中性",
+          keywords: [],
+          fallback_type: type
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.room_id) {
+          router.push(`/chat/${data.room_id}?clientId=${clientId}`);
+        }
+      } else {
+        message.error("创建房间失败");
+      }
+    } catch(e) {
+      console.error(e);
+      message.error("网络错误");
     }
   };
 
@@ -272,6 +306,41 @@ export default function Home() {
                   <Title level={4} className="!mt-8 !mb-3 text-slate-700">正在寻找共鸣...</Title>
                   <Text type="secondary" className="text-base">匹配同样【{emotion.label}】的灵魂</Text>
                 </div>
+              </div>
+            </Card>
+          )}
+
+          {status === "timeout" && emotion && (
+            <Card variant="borderless" className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl bg-white/95 backdrop-blur-sm p-10 text-center">
+              <div className="flex flex-col gap-6 w-full items-center">
+                <Title level={3} className="!mb-2 text-slate-700">15秒内暂未找到匹配的真人</Title>
+                <Text type="secondary" className="text-base mb-6">不要紧，这里永远有人愿意倾听你。请选择接下来的陪伴方式：</Text>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-[600px]">
+                  <Card 
+                    hoverable 
+                    onClick={() => handleFallbackChoice("ai")}
+                    className="border-2 border-transparent hover:border-[#13c2c2] transition-all bg-slate-50 cursor-pointer"
+                  >
+                    <div className="text-4xl mb-4">🤖</div>
+                    <Title level={4}>AI 专属伴侣</Title>
+                    <Text type="secondary">一个温柔、包容的机器人，专为你此刻的情绪而生，给予最安全的倾听。</Text>
+                  </Card>
+                  
+                  <Card 
+                    hoverable 
+                    onClick={() => handleFallbackChoice("mock_user")}
+                    className="border-2 border-transparent hover:border-[#f59e0b] transition-all bg-slate-50 cursor-pointer"
+                  >
+                    <div className="text-4xl mb-4">🎭</div>
+                    <Title level={4}>模拟真人网友</Title>
+                    <Text type="secondary">沉浸式体验。它将扮演一个有血有肉的普通人类，像路过的网友一样与你聊天。</Text>
+                  </Card>
+                </div>
+                
+                <Button type="link" onClick={() => setStatus("idle")} className="mt-4 text-slate-500">
+                  取消并返回
+                </Button>
               </div>
             </Card>
           )}

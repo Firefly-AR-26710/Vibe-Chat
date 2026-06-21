@@ -106,23 +106,5 @@ async def match_user(user_id: str, emotion_label: str, polarity: str, keywords: 
     # Remove ourselves from queue to prevent being picked up later
     await redis_client.lrem(queue_key, 1, user_id)
 
-    # Fallback to AI companion
-    ai_room_id = f"ai_room_{uuid.uuid4()}"
-    await redis_client.set(f"match:{user_id}", ai_room_id, ex=3600)
-    
-    # Store AI context using user's initial data
-    data_str = await redis_client.get(f"user_data:{user_id}")
-    intensity = 5
-    if data_str:
-        data = json.loads(data_str)
-        intensity = data.get("intensity", 5)
-        
-    ai_context = {
-        "emotion_label": emotion_label,
-        "polarity": polarity,
-        "keywords": keywords,
-        "intensity": intensity
-    }
-    await redis_client.set(f"ai_context:{ai_room_id}", json.dumps(ai_context), ex=3600)
-    
-    return ai_room_id, True
+    # Return None to indicate timeout
+    return None, False

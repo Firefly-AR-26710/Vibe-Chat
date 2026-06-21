@@ -26,7 +26,7 @@ export default function ChatRoom() {
   const [input, setInput] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [myIdentity, setMyIdentity] = useState<{nickname: string, color: string} | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   const isAiRoom = roomId?.startsWith("ai_room_");
 
@@ -60,7 +60,12 @@ export default function ChatRoom() {
   }, [roomId, clientId, router]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (mainRef.current) {
+      mainRef.current.scrollTo({
+        top: mainRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   }, [messages]);
 
   const sendMessage = () => {
@@ -107,7 +112,7 @@ export default function ChatRoom() {
       </header>
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 z-10 scroll-smooth">
+      <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 z-10 scroll-smooth">
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             const isMe = myIdentity && msg.sender === myIdentity.nickname;
@@ -159,7 +164,7 @@ export default function ChatRoom() {
             );
           })}
         </AnimatePresence>
-        <div ref={messagesEndRef} className="h-4" />
+        <div className="h-4" />
       </main>
 
       {/* Input - Transparent Bottom Bar */}
