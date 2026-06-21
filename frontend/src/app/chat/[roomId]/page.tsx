@@ -26,6 +26,13 @@ export default function ChatRoom() {
   const [input, setInput] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [myIdentity, setMyIdentity] = useState<{nickname: string, color: string} | null>(null);
+  const [emotionState, setEmotionState] = useState<{
+    emotion_label: string;
+    intensity: number;
+    polarity: string;
+    suggestions: string[];
+  } | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
 
   const isAiRoom = roomId?.startsWith("ai_room_");
@@ -43,6 +50,13 @@ export default function ChatRoom() {
       const data = JSON.parse(event.data);
       if (data.type === "identity") {
         setMyIdentity({ nickname: data.nickname, color: data.color });
+      } else if (data.type === "emotion_state") {
+        setEmotionState({
+          emotion_label: data.emotion_label,
+          intensity: data.intensity,
+          polarity: data.polarity,
+          suggestions: data.suggestions
+        });
       } else {
         setMessages((prev) => [...prev, { ...data, id: Math.random().toString() }]);
       }
@@ -72,7 +86,16 @@ export default function ChatRoom() {
     if (ws && input.trim()) {
       ws.send(input);
       setInput("");
+      setShowSuggestions(false);
     }
+  };
+
+  const getBubbleStyle = (isMe: boolean) => {
+    if (!isMe) return "bg-white text-slate-700 border-slate-100 rounded-2xl rounded-tl-sm";
+    
+    if (emotionState?.polarity === "积极") return "bg-amber-500 text-white border-amber-500 rounded-2xl rounded-tr-sm";
+    if (emotionState?.polarity === "消极") return "bg-indigo-500 text-white border-indigo-500 rounded-2xl rounded-tr-sm";
+    return "bg-[#13c2c2] text-white border-[#13c2c2] rounded-2xl rounded-tr-sm";
   };
 
   return (
@@ -110,6 +133,30 @@ export default function ChatRoom() {
            <span className="text-xs text-slate-500 font-medium">{ws?.readyState === WebSocket.OPEN ? '已连接' : '已断开'}</span>
         </div>
       </header>
+
+      {/* Emotion Status Bar */}
+      <AnimatePresence>
+        {emotionState && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            className="w-full bg-white/60 backdrop-blur-sm border-b border-white/40 shadow-[0_2px_10px_rgba(0,0,0,0.02)] z-10 px-6 py-2 flex items-center justify-center gap-2 shrink-0"
+          >
+            <span className="text-xs text-slate-500">当前状态探测：</span>
+            <span className="text-sm font-semibold text-slate-700 flex items-center gap-1">
+              {emotionState.polarity === '积极' ? '☀️' : emotionState.polarity === '消极' ? '🌧️' : '☁️'}
+              {emotionState.emotion_label}
+            </span>
+            <div className="flex items-center ml-2 bg-slate-100 rounded-full h-1.5 w-16 overflow-hidden">
+              <div 
+                className={`h-full rounded-full ${emotionState.polarity === '积极' ? 'bg-amber-400' : emotionState.polarity === '消极' ? 'bg-indigo-400' : 'bg-[#13c2c2]'}`}
+                style={{ width: `${(emotionState.intensity / 10) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs font-medium text-slate-400 ml-1">{emotionState.intensity}/10</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages */}
       <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 z-10 scroll-smooth">
@@ -149,13 +196,7 @@ export default function ChatRoom() {
                   </div>
                   <div className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                     <span className="text-xs text-slate-400 mb-1 px-1 font-medium">{isMe ? "我" : msg.sender}</span>
-                    <div 
-                      className={`px-5 py-3 shadow-sm border ${
-                        isMe 
-                          ? "bg-[#13c2c2] text-white border-[#13c2c2] rounded-2xl rounded-tr-sm" 
-                          : "bg-white text-slate-700 border-slate-100 rounded-2xl rounded-tl-sm"
-                      }`}
-                    >
+                    <div className={`px-5 py-3 shadow-sm border ${getBubbleStyle(!!isMe)}`}>
                       <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     </div>
                   </div>
@@ -168,8 +209,35 @@ export default function ChatRoom() {
       </main>
 
       {/* Input - Transparent Bottom Bar */}
-      <footer className="p-4 bg-transparent z-10 shrink-0 pb-6 md:pb-8">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+      <footer className="p-4 bg-transparent z-10 shrink-0 pb-6 md:pb-8 relative">
+        <div className="max-w-4xl mx-auto flex flex-col gap-3">
+          <AnimatePresence>
+            {emotionState && showSuggestions && emotionState.suggestions && emotionState.suggestions.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex flex-wrap gap-2 px-2"
+              >
+                {emotionState.suggestions.map((sug, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (ws) {
+                        ws.send(sug);
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    className="text-xs px-4 py-2 bg-white/80 backdrop-blur-md border border-[#13c2c2]/20 text-[#13c2c2] rounded-full shadow-sm hover:bg-[#13c2c2] hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {sug}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="flex items-center gap-3 w-full">
           <input
             type="text"
             value={input}
@@ -188,6 +256,7 @@ export default function ChatRoom() {
             <Send className="w-5 h-5" />
             <span className="hidden sm:inline">发送</span>
           </button>
+          </div>
         </div>
       </footer>
     </div>
