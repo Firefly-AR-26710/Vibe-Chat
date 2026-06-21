@@ -47,7 +47,7 @@ export default function ChatRoom() {
     }
 
     const host = window.location.hostname;
-    const socket = new WebSocket(`ws://${host}:8000/api/ws/chat/${roomId}/${clientId}`);
+    const socket = new WebSocket(`ws://${host}:8002/api/ws/chat/${roomId}/${clientId}`);
     
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);

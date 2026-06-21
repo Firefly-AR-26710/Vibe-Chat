@@ -149,4 +149,52 @@ graph_builder.add_edge("generate_ai_response", END)
 graph_builder.add_edge("generate_mock_user_response", END)
 
 # Compiled as a stateless graph without checkpointer
-emotion_graph = graph_builder.compile()
+_emotion_graph = graph_builder.compile()
+
+import os
+import json
+import uuid
+import redis
+from langchain_core.messages import messages_to_dict, messages_from_dict
+
+class RemoteEmotionGraph:
+    def __init__(self):
+        self.redis_client = None
+
+    def invoke(self, state: dict) -> dict:
+        use_remote = os.getenv("USE_REMOTE_AI_WORKER", "false").lower() == "true"
+        if not use_remote:
+            return _emotion_graph.invoke(state)
+        
+        if not self.redis_client:
+            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            self.redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+        
+        serialized_state = dict(state)
+        if "messages" in serialized_state:
+            serialized_state["messages"] = messages_to_dict(serialized_state["messages"])
+        
+        task_id = str(uuid.uuid4())
+        task_data = {
+            "task_id": task_id,
+            "state": serialized_state
+        }
+        
+        try:
+            self.redis_client.lpush("ai_task_queue", json.dumps(task_data))
+            response = self.redis_client.brpop(f"ai_result:{task_id}", timeout=45)
+            
+            if response:
+                _, result_json = response
+                result_data = json.loads(result_json)
+                if "messages" in result_data:
+                    result_data["messages"] = messages_from_dict(result_data["messages"])
+                return result_data
+            else:
+                print("Remote AI Worker timeout!")
+                return {}
+        except Exception as e:
+            print(f"Redis remote worker error: {e}")
+            return {}
+
+emotion_graph = RemoteEmotionGraph()
