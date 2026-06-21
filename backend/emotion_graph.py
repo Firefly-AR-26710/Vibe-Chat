@@ -3,6 +3,8 @@ from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel, Field
 from llm_factory import get_llm
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
 
 class EmotionState(TypedDict):
     messages: List[BaseMessage]
@@ -60,6 +62,19 @@ def analyze_emotion(state: EmotionState) -> dict:
             "keywords": ["安静", "平淡"]
         }
 
+@tool
+def get_comforting_quote(emotion_label: str) -> str:
+    """获取针对特定情绪的安慰名言或建议，在需要时为用户提供心理支持。"""
+    quotes = {
+        "焦虑": "『与其担忧未来，不如专注于眼前的一小步。』",
+        "悲伤": "『悲伤是爱曾存在过的证明。』",
+        "孤独": "『世界很大，总有和你相似的灵魂在某个角落。』",
+        "愤怒": "『愤怒是内心的护卫，但不要让它烧伤自己。』",
+        "疲惫": "『停下来休息一下吧，你已经做得很好了。』",
+        "快乐": "『把这份快乐珍藏，它会是未来日子里的光。』",
+    }
+    return quotes.get(emotion_label, "『一切都会过去，保持内心的平静。』")
+
 def generate_ai_response(state: EmotionState) -> dict:
     messages = state.get("messages", [])
     emotion_label = state.get("emotion_label", "未知")
@@ -73,14 +88,15 @@ def generate_ai_response(state: EmotionState) -> dict:
 2. 避免说教或机械式的安慰。如果情绪强度很高（>7），请给予更多包容和理解。
 3. 保持匿名感，不要自称是AI，用第一人称"我"与用户交流。
 4. 语言简短自然，像真实的聊天消息一样。
+5. 你可以使用 `get_comforting_quote` 工具来获取名言，并在聊天中自然地引用它来安慰用户（如果合适的话）。
 """
     
-    # Append system prompt and invoke
-    prompt_messages = [SystemMessage(content=system_prompt)] + messages
-    
     try:
-        response = llm.invoke(prompt_messages)
-        return {"current_response": response.content}
+        # Create a ReAct agent equipped with the tool
+        agent = create_react_agent(llm, tools=[get_comforting_quote], state_modifier=system_prompt)
+        # The agent will autonomous run the thought-action-observation loop
+        response = agent.invoke({"messages": messages})
+        return {"current_response": response["messages"][-1].content}
     except Exception as e:
         print(f"LLM Response Generation Error: {e}")
         return {"current_response": "抱歉，我现在有点走神了，你能再说一遍吗？"}

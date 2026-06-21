@@ -26,3 +26,9 @@ class EmotionHistory(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="histories")
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String(50), primary_key=True, index=True)
+    value = Column(String(500), nullable=True)

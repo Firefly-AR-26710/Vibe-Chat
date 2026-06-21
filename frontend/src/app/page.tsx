@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Layout, Input, Button, Card, Typography, Space, Tag, Spin, Dropdown, App } from "antd";
 import type { MenuProps } from "antd";
-import { SendOutlined, HeartFilled, ClockCircleOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { SendOutlined, HeartFilled, ClockCircleOutlined, UserOutlined, LogoutOutlined, SettingOutlined } from "@ant-design/icons";
+import { SettingsModal } from "../components/SettingsModal";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -25,6 +26,7 @@ export default function Home() {
   const [clientId, setClientId] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [history, setHistory] = useState<EmotionHistory[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -189,7 +191,13 @@ export default function Home() {
             VibeChat
           </Title>
         </div>
-        <div>
+        <div className="flex items-center gap-4">
+          <Button 
+            type="text" 
+            icon={<SettingOutlined />} 
+            onClick={() => setSettingsOpen(true)}
+            className="text-slate-600 hover:text-slate-900"
+          />
           {username ? (
             <Dropdown menu={{ items: userMenu }} placement="bottomRight">
               <Button type="text" className="flex items-center gap-2 hover:bg-black/5 text-slate-600 font-medium">
@@ -346,6 +354,7 @@ export default function Home() {
           )}
         </div>
       </Content>
+      <SettingsModal open={settingsOpen} onCancel={() => setSettingsOpen(false)} />
     </Layout>
   );
 }
